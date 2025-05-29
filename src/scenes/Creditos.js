@@ -6,7 +6,7 @@ class Creditos extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('creditos_final', 'assets/creditos_final.png');
+    this.load.image('creditos_final', '/assets/creditos_final.png'); // ajuste se o arquivo estiver em outra subpasta
   }
 
   create() {

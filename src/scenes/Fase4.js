@@ -6,9 +6,9 @@ class Fase4 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('lina', 'assets/lina.png');
-    this.load.image('ghorn', 'assets/ghorn.png');
-    this.load.image('mapa_labirinto', 'assets/mapa_labirinto.png');
+    this.load.image('lina', '/assets/Personagens/lina.png');
+    this.load.image('ghorn', '/assets/Personagens/ghorn.png');
+    this.load.image('mapa_labirinto', '/assets/Mapas/mapa_labirinto.png');
   }
 
   create() {

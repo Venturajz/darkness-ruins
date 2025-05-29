@@ -6,37 +6,52 @@ class Fase1 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('lina', '/assets/lina.png');
-    this.load.image('npc_inicio', '/assets/npc_inicio.png');
-    this.load.image('vilao1', '/assets/vilao1.png');
-    this.load.image('mapa_vilarejo', '/assets/mapa_vilarejo.png');
-    this.load.image('coracoes', '/assets/hud_coracoes.png'); // 1 coração por imagem
+    this.load.image('npc_inicio', '/assets/Personagens/npc_inicio.png');
+    this.load.image('vilao1', '/assets/Personagens/vilao1.png');
+    this.load.image('mapa_vilarejo', '/assets/Mapas/mapa_vilarejo.png');
+    this.load.image('coracoes', '/assets/Personagens/hud_coracoes.png');
+    this.load.spritesheet('lina_frente', '/assets/Sprites/lina andando de frente-sprite-sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('lina_costas', '/assets/Sprites/lina andando costas-sprite-sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('lina_direita', '/assets/Sprites/lina andando direita-sprite-sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('lina_esquerda', '/assets/Sprites/lina andando esquerda-sprite-sheet.png', { frameWidth: 64, frameHeight: 64 });
   }
 
   create() {
+    document.body.style.overflow = 'hidden';
+    this.scale.resize(window.innerWidth, window.innerHeight);
     const { width, height } = this.sys.game.canvas;
 
     // Fundo e título
-    this.add.image(width / 2, height / 2, 'mapa_vilarejo').setDepth(-2).setDisplaySize(width, height);
+    const fundo = this.add.image(width / 2, height / 2, 'mapa_vilarejo')
+      .setDepth(-2)
+      .setDisplaySize(width, height)
+      .setName('fundo'); 
     this.add.text(width / 2, 30, 'Bem-vindo à Fase 1', {
       fontSize: '20px',
       color: '#ffffff',
     }).setOrigin(0.5).setDepth(2);
 
     // Lina
-    this.lina = this.physics.add.image(width / 2, height / 2, 'lina').setScale(0.13);
+    this.lina = this.physics.add.sprite(width / 2, height / 2, 'lina_frente', 0).setScale(2);
     this.lina.setCollideWorldBounds(true);
-    this.vida = 100; // Vida total
+    this.lina.setImmovable(true);
+    this.vida = 100;
 
-    // Corações HUD
+    // Animações
+    this.anims.create({ key: 'andar_frente', frames: this.anims.generateFrameNumbers('lina_frente', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'andar_costas', frames: this.anims.generateFrameNumbers('lina_costas', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'andar_direita', frames: this.anims.generateFrameNumbers('lina_direita', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'andar_esquerda', frames: this.anims.generateFrameNumbers('lina_esquerda', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
+
+    // Corações
     this.coracoes = [];
     const totalCoracoes = 5;
     for (let i = 0; i < totalCoracoes; i++) {
-  const coracao = this.add.image(0.5 + i * 60, 0.5, 'coracoes') // espaçamento ampliado
-        .setScale(0.08)       // menor
-      .setScrollFactor(0)   // fixo na câmera
-      .setDepth(2)
-      .setOrigin(0, 0); 
+      const coracao = this.add.image(0.5 + i * 45, 0.5, 'coracoes')
+        .setScale(0.06)
+        .setScrollFactor(0)
+        .setDepth(2)
+        .setOrigin(0, 0);
       this.coracoes.push(coracao);
     }
 
@@ -73,6 +88,14 @@ class Fase1 extends Phaser.Scene {
         wordWrap: { width: 350 },
       }
     ).setDepth(2);
+
+    // Redimensionar janela
+    window.addEventListener('resize', () => {
+      this.scale.resize(window.innerWidth, window.innerHeight);
+      const w = this.sys.game.canvas.width;
+      const h = this.sys.game.canvas.height;
+      this.children.getByName('fundo')?.setDisplaySize(w, h);
+    });
   }
 
   atualizarCoracoes() {
@@ -90,6 +113,7 @@ class Fase1 extends Phaser.Scene {
       const ogro = this.physics.add.image(width / 2 + dx, height / 2 + dy, 'vilao1').setScale(0.11);
       ogro.vida = 25;
       ogro.setImmovable(true);
+      ogro.setPushable(false); 
       ogro.barraVida = this.add.graphics();
       ogro.lastAttackTime = 0;
 
@@ -99,36 +123,55 @@ class Fase1 extends Phaser.Scene {
       this.physics.add.collider(this.lina, ogro, () => {
         const now = this.time.now;
         if (now - ogro.lastAttackTime > 1000 && this.vida > 0) {
-          this.vida -= 5; // Ogro causa 5 de dano
+          this.vida -= 5;
           this.atualizarCoracoes();
-
           this.lina.setTint(0xff0000);
           this.time.delayedCall(200, () => this.lina.clearTint());
           ogro.lastAttackTime = now;
-
           if (this.vida <= 0) {
             this.scene.restart();
           }
         }
-      });
+      }, null, this);
     }
   }
 
   update() {
-    const speed = 2;
+    const speed = 200; // velocidade aumentada
     const { cima, baixo, esquerda, direita, atacar, avancar } = this.teclas;
+    let moving = false;
+    this.lina.body.setVelocity(0);
+    let vx = 0;
+    let vy = 0;
 
-    // Movimento
-    if (cima.isDown) this.lina.y -= speed;
-    if (baixo.isDown) this.lina.y += speed;
-    if (esquerda.isDown) this.lina.x -= speed;
-    if (direita.isDown) this.lina.x += speed;
+    if (cima.isDown) {
+      vy = -speed;
+      this.lina.anims.play('andar_costas', true);
+      moving = true;
+    } else if (baixo.isDown) {
+      vy = speed;
+      this.lina.anims.play('andar_frente', true);
+      moving = true;
+    } else if (direita.isDown) {
+      vx = speed;
+      this.lina.anims.play('andar_direita', true);
+      moving = true;
+    } else if (esquerda.isDown) {
+      vx = -speed;
+      this.lina.anims.play('andar_esquerda', true);
+      moving = true;
+    }
+
+    this.lina.body.setVelocity(vx, vy);
+    if (!moving) this.lina.anims.stop();
 
     // Ataque
     if (Phaser.Input.Keyboard.JustDown(atacar)) {
-      this.lina.setScale(0.15).setAngle(-15);
+      this.lina.setScale(2);
+      this.lina.setTint(0xffaaaa);
       this.time.delayedCall(150, () => {
-        this.lina.setScale(0.13).setAngle(0);
+        this.lina.setScale(2);
+        this.lina.clearTint();
       });
 
       this.ogros.forEach(ogro => {
@@ -136,17 +179,17 @@ class Fase1 extends Phaser.Scene {
         if (distancia < 80 && ogro.vida > 0) {
           ogro.vida -= 5;
           if (ogro.vida <= 0) {
-            ogro.destroy();
             ogro.barraVida.clear();
+            ogro.destroy();
           }
         }
       });
     }
 
-    // Atualização da barra de vida dos ogros
+    // Barra de vida dos ogros
     this.ogros.forEach(ogro => {
       if (ogro.active) {
-        this.physics.moveToObject(ogro, this.lina, 30);
+        this.physics.moveToObject(ogro, this.lina, 25);
         const barraX = ogro.x - 30;
         const barraY = ogro.y - ogro.displayHeight / 2 - 10;
         const largura = 60;
@@ -163,8 +206,18 @@ class Fase1 extends Phaser.Scene {
       }
     });
 
-    if (Phaser.Input.Keyboard.JustDown(avancar)) {
-      this.scene.start('Fase2');
+    const totalOgrosEsperados = this.spawnOffsets.length;
+    if (
+      this.ogros.length === totalOgrosEsperados &&
+      this.ogros.every(o => !o.active)
+    ) {
+      if (!this.transicaoIniciada) {
+        this.transicaoIniciada = true;
+        this.cameras.main.fadeOut(1000, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('Fase2');
+        });
+      }
     }
   }
 }

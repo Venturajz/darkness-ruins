@@ -6,9 +6,9 @@ class Fase3 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('lina', 'assets/lina.png');
-    this.load.image('vilao1', 'assets/vilao1.png');
-    this.load.image('mapa_floresta', 'assets/mapa_floresta.png');
+    this.load.image('lina', '/assets/Personagens/lina.png');
+    this.load.image('vilao1', '/assets/Personagens/vilao1.png');
+    this.load.image('mapa_floresta', '/assets/Mapas/mapa_floresta.png');
   }
 
   create() {
